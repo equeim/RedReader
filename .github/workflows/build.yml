@@ -20,6 +20,10 @@ jobs:
 
             -   uses: gradle/wrapper-validation-action@v1
 
+            -   uses: gradle/gradle-build-action@v2
+                with:
+                    cache-read-only: ${{ github.event_name == 'pull_request' }}
+
             -   name: Install NDK
                 run: |
                     ANDROID_ROOT=/usr/local/lib/android
