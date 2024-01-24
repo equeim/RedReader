@@ -9,6 +9,8 @@ on:
 jobs:
     ci:
         runs-on: ubuntu-latest
+        env:
+            NDK_VERSION: '23.1.7779620'
         steps:
             -   uses: actions/checkout@v4
 
@@ -24,10 +26,31 @@ jobs:
                 with:
                     cache-read-only: ${{ github.event_name == 'pull_request' }}
 
+            # We can't use environment variables defined in the runner directly as action inputs using env context
+            # We need to copy it to $GITHUB_ENV file first
+            -   name: Determine NDK path
+                run:
+                    echo "NDK_PATH=$ANDROID_SDK_ROOT/ndk/$NDK_VERSION" >> "$GITHUB_ENV"
+
+            -   name: Restore NDK from cache
+                id: ndk-restore
+                uses: actions/cache/restore@v4
+                with:
+                    key: ndk-${{ env.NDK_VERSION }}
+                    path: ${{ env.NDK_PATH }}
+
             -   name: Install NDK
+                if: ${{ ! steps.ndk-restore.outputs.cache-hit }}
                 run: |
-                    SDKMANAGER=${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager
-                    echo "y" | $SDKMANAGER "ndk;23.1.7779620" --sdk_root=${ANDROID_SDK_ROOT}
+                    SDKMANAGER="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
+                    echo "y" | "$SDKMANAGER" "ndk;${NDK_VERSION}" "--sdk_root=${ANDROID_SDK_ROOT}"
+
+            -   name: Save NDK to cache
+                if: ${{ !steps.ndk-restore.outputs.cache-hit && github.event_name != 'pull_request' }}
+                uses: actions/cache/save@v4
+                with:
+                    key: ndk-${{ env.NDK_VERSION }}
+                    path: ${{ env.NDK_PATH }}
 
             -   name: Run release build
                 run: ./gradlew assembleRelease
