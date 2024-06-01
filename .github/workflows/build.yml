@@ -29,8 +29,9 @@ jobs:
 
             -   name: Install NDK
                 run: |
+                    which python
                     SDKMANAGER="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager"
-                    NDK_VERSION="$(python3.12 -c 'import tomllib; print(tomllib.load(open("gradle/libs.versions.toml", "rb"))["versions"]["ndk"])')"
+                    NDK_VERSION="$(yq .versions.ndk gradle/libs.versions.toml)"
                     echo "NDK version is ${NDK_VERSION}"
                     echo "y" | "$SDKMANAGER" "ndk;$NDK_VERSION" --sdk_root="${ANDROID_SDK_ROOT}"
 
